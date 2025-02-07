@@ -1,0 +1,26 @@
+# Movie Watchlist App - Database Schema
+
+## Users Table
+- id (UUID, PRIMARY KEY, AUTO GENERATED)
+- username (VARCHAR(50), UNIQUE, NOT NULL)
+- email (VARCHAR(100), UNIQUE, NOT NULL)
+- password (VARCHAR(255), NOT NULL)
+
+## Movies Table
+- id (SERIAL, PRIMARY KEY)
+- tmdb_id (INTEGER, UNIQUE, NOT NULL)  -- ID from TMDB API
+- title (VARCHAR(255), NOT NULL)
+- poster_path (VARCHAR(255), OPTIONAL) -- URL to movie poster
+- overview (TEXT, OPTIONAL)
+- release_date (DATE, OPTIONAL)
+- vote_average (DECIMAL(3,1), OPTIONAL) -- Rating from TMDB
+
+## Watchlist Table
+- id (SERIAL, PRIMARY KEY)
+- user_id (UUID, FOREIGN KEY -> users.id, ON DELETE CASCADE)
+- movie_id (INTEGER, FOREIGN KEY -> movies.id, ON DELETE CASCADE)
+- UNIQUE(user_id, movie_id) -- Ensures a movie is only saved once per user
+
+## Relationships:
+- One **User** can have many **Movies** in their **Watchlist** (One-to-Many).
+- A **Movie** can belong to multiple **Users’ Watchlists** (Many-to-Many).
