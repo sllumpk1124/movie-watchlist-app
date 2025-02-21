@@ -1,6 +1,15 @@
 const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
+  /**
+   * Defines the User model representing users in the database.
+   * 
+   * Fields:
+   * - `id`: UUID primary key for uniquely identifying users.
+   * - `username`: Unique username for the user (required).
+   * - `email`: Unique email address for user authentication (required).
+   * - `password`: Hashed password for authentication (required).
+   */
   const User = sequelize.define("User", {
     id: {
       type: DataTypes.UUID,
@@ -16,21 +25,12 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
-      validate: { isEmail: true },
     },
     password: {
       type: DataTypes.STRING,
       allowNull: false,
     },
   });
-
-  // **Associations**
-  User.associate = (models) => {
-    User.hasMany(models.Watchlist, {
-      foreignKey: "userId",
-      onDelete: "CASCADE",
-    });
-  };
 
   return User;
 };

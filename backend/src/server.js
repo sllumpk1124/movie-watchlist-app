@@ -1,3 +1,11 @@
+/**
+ * Server setup for the Movie Watchlist API.
+ * - Initializes an Express server with necessary middleware.
+ * - Loads environment variables.
+ * - Connects to the database.
+ * - Sets up API routes for authentication, movies, and watchlist.
+ */
+
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -7,16 +15,23 @@ const movieRoutes = require("./routes/movieRoutes");
 const watchlistRoutes = require("./routes/watchlistRoutes");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
+// Middleware setup
+app.use(cors()); // Enables Cross-Origin Resource Sharing
+app.use(express.json()); // Parses incoming JSON requests
+
+// Define API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 
-const startServer = async () => {
-  await connectDB();
-  app.listen(5000, () => console.log("🚀 Server running on port 5000"));
-};
+// Export `app` first for testing purposes
+module.exports = app;
 
-startServer();
+// Start the server only in non-test environments
+if (process.env.NODE_ENV !== "test") {
+  const PORT = process.env.PORT || 5000;
+  connectDB().then(() => {
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  });
+}

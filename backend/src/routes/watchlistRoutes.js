@@ -1,125 +1,86 @@
+/**
+ * Watchlist Routes
+ * ----------------
+ * Provides API endpoints for managing a user's watchlist:
+ * - Adding a movie to the watchlist
+ * - Retrieving a user's watchlist
+ * - Removing a movie from the watchlist
+ *
+ * Routes require authentication via JWT.
+ */
+
 const express = require("express");
-const { Watchlist, User, Movie } = require("../db");
-const authenticateJWT = require("../middleware/authMiddleware");
+const { Watchlist, Movie } = require("../models");
+const authenticate = require("../middleware/authenticate");
 
 const router = express.Router();
 
 /**
- * Fetch user's watchlist with movie details
+ * @route   POST /api/watchlist
+ * @desc    Adds a movie to the user's watchlist
+ * @access  Private (Requires authentication)
+ * @body    {number} movieId - The ID of the movie to add
  */
-router.get("/", authenticateJWT, async (req, res) => {
-  try {
-    console.log("🛠 Fetching Watchlist for User ID:", req.user.id); // Debugging log
+router.post("/", authenticate, async (req, res) => {
+    try {
+        const { movieId } = req.body;
+        const userId = req.user.userId;
 
-    const watchlist = await Watchlist.findAll({
-      where: { userId: req.user.id },
-      include: [{ model: Movie }], // Ensure full movie details are included
-    });
+        // Check if movie is already in watchlist
+        const existingEntry = await Watchlist.findOne({ where: { userId, movieId } });
+        if (existingEntry) {
+            return res.status(400).json({ error: "Movie already in watchlist" });
+        }
 
-    console.log("📋 Watchlist Retrieved:", watchlist); // Debugging log
-
-    res.json(watchlist);
-  } catch (error) {
-    console.error("❌ Error fetching watchlist:", error);
-    res.status(500).json({ error: "Server error" });
-  }
+        // Add movie to watchlist
+        const watchlistEntry = await Watchlist.create({ userId, movieId });
+        res.status(201).json(watchlistEntry);
+    } catch (error) {
+        console.error("Error adding movie to watchlist:", error);
+        res.status(500).json({ error: "Failed to add movie to watchlist" });
+    }
 });
 
 /**
- * Adds a movie to the user's watchlist.
+ * @route   GET /api/watchlist
+ * @desc    Retrieves the authenticated user's watchlist
+ * @access  Private (Requires authentication)
  */
-router.post("/", authenticateJWT, async (req, res) => {
-  const { movieId, title, description, release_date, poster_path } = req.body;
-  const userId = req.user.id;
+router.get("/", authenticate, async (req, res) => {
+    try {
+        const userId = req.user.userId;
 
-  // 🚨 Ensure movieId is valid
-  if (!movieId) {
-    return res.status(400).json({ error: "Movie ID is required" });
-  }
+        // Fetch watchlist movies along with their details
+        const watchlist = await Watchlist.findAll({
+            where: { userId },
+            include: [Movie],
+        });
 
-  console.log("Add to Watchlist Request Received:", { userId, movieId, title });
-
-  try {
-    let movie = await Movie.findByPk(movieId);
-
-    // Ensure movieId is explicitly set
-    if (!movie) {
-      movie = await Movie.create({
-        id: movieId, // Explicitly set ID
-        title,
-        description,
-        release_date,
-        poster_path,
-      });
+        res.status(200).json(watchlist);
+    } catch (error) {
+        console.error("Error fetching watchlist:", error);
+        res.status(500).json({ error: "Failed to fetch watchlist" });
     }
-
-    const [watchlistItem, created] = await Watchlist.findOrCreate({
-      where: { userId, movieId },
-      defaults: { userId, movieId },
-    });
-
-    if (!created) {
-      console.log("⚠️ Movie already in watchlist:", movieId);
-      return res.status(200).json({ message: "Movie is already in your watchlist" });
-    }
-
-    console.log("✅ Movie added successfully:", watchlistItem);
-    res.status(201).json({ message: "Movie added to watchlist successfully!", watchlistItem });
-  } catch (error) {
-    console.error("❌ Error adding movie to watchlist:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-/**
- * Toggle watched status of a movie in the watchlist
- */
-router.put("/:movieId/toggle", authenticateJWT, async (req, res) => {
-  try {
-    const { movieId } = req.params;
-    console.log("🔄 Toggling Watch Status for Movie ID:", movieId);
-
-    const watchlistItem = await Watchlist.findOne({ where: { userId: req.user.id, movieId } });
-
-    if (!watchlistItem) {
-      return res.status(404).json({ error: "Movie not found in watchlist" });
-    }
-
-    // Toggle watched status
-    watchlistItem.watched = !watchlistItem.watched;
-    await watchlistItem.save();
-
-    res.json({ message: "Watch status updated", watched: watchlistItem.watched });
-  } catch (error) {
-    console.error("❌ Error toggling watch status:", error);
-    res.status(500).json({ error: "Server error" });
-  }
 });
 
 /**
- * Removes a movie from the watchlist.
+ * @route   DELETE /api/watchlist/:movieId
+ * @desc    Removes a movie from the user's watchlist
+ * @access  Private (Requires authentication)
+ * @param   {number} movieId - The ID of the movie to remove
  */
-/**
- * Remove a movie from the user's watchlist.
- */
-router.delete("/:movieId", authenticateJWT, async (req, res) => {
-  try {
-    const { movieId } = req.params;
-    const userId = req.user.id;
+router.delete("/:movieId", authenticate, async (req, res) => {
+    try {
+        const { movieId } = req.params;
+        const userId = req.user.userId;
 
-    console.log("Delete Request Received:", { userId, movieId });
+        await Watchlist.destroy({ where: { userId, movieId } });
 
-    // Find and delete the movie from the watchlist
-    const deleted = await Watchlist.destroy({ where: { userId, movieId } });
-
-    if (!deleted) {
-      return res.status(404).json({ error: "Movie not found in watchlist" });
+        res.status(200).json({ message: "Movie removed from watchlist" });
+    } catch (error) {
+        console.error("Error removing movie from watchlist:", error);
+        res.status(500).json({ error: "Failed to remove movie from watchlist" });
     }
-
-    res.json({ message: "Movie removed from watchlist successfully" });
-  } catch (error) {
-    console.error("❌ Error deleting from watchlist:", error);
-    res.status(500).json({ error: "Server error" });
-  }
 });
 
 module.exports = router;

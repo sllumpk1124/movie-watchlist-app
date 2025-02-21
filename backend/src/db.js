@@ -1,9 +1,13 @@
 const { Sequelize } = require("sequelize");
-require("dotenv").config();
+require("dotenv").config({ path: process.env.NODE_ENV === "test" ? ".env.test" : ".env" });
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
+const databaseUrl = process.env.NODE_ENV === "test"
+  ? process.env.TEST_DATABASE_URL
+  : process.env.DATABASE_URL;
+
+const sequelize = new Sequelize(databaseUrl, {
   dialect: "postgres",
-  logging: false,
+  logging: process.env.NODE_ENV !== "test", // Disable logging in test mode
 });
 
 // Import models
@@ -23,11 +27,23 @@ const connectDB = async () => {
     await sequelize.authenticate();
     console.log("✅ Database connected successfully");
 
-    await sequelize.sync({ alter: true }); // Sync models
-    console.log("✅ Database models synced successfully");
+    if (process.env.NODE_ENV !== "test") { // 🔹 Don't reset database in production
+      await sequelize.sync({ alter: true });
+      console.log("✅ Database models synced successfully");
+    }
   } catch (error) {
     console.error("❌ Database connection error:", error);
   }
 };
 
-module.exports = { sequelize, connectDB, User, Movie, Watchlist };
+// Close database connection properly
+const closeDB = async () => {
+  try {
+    await sequelize.close();
+    console.log("🔌 Database connection closed.");
+  } catch (error) {
+    console.error("❌ Error closing database connection:", error);
+  }
+};
+
+module.exports = { sequelize, connectDB, closeDB, User, Movie, Watchlist };

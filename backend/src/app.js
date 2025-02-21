@@ -1,3 +1,11 @@
+/**
+ * Main application setup for the Movie Watchlist API.
+ * - Initializes Express with middleware.
+ * - Loads environment variables.
+ * - Connects to the database.
+ * - Registers authentication, movies, and watchlist routes.
+ */
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -15,12 +23,14 @@ const app = express();
 app.use(cors()); // Allows cross-origin requests
 app.use(express.json()); // Parses incoming JSON requests
 
-// Routes
+// Define API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 
-// Connect to database and start the server
+/**
+ * Connects to the database and starts the server.
+ */
 const startServer = async () => {
   await connectDB();
 };
