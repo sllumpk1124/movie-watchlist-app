@@ -1,24 +1,30 @@
 const { DataTypes } = require("sequelize");
 
-/**
- * Defines the Movie model for storing TMDB data.
- */
 module.exports = (sequelize) => {
-  return sequelize.define("Movie", {
+  const Movie = sequelize.define("Movie", {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
-      allowNull: false,
     },
     title: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    description: {
+      type: DataTypes.TEXT,
+    },
+    release_date: {
+      type: DataTypes.STRING,
+    },
     poster_path: {
       type: DataTypes.STRING,
     },
-    overview: {
-      type: DataTypes.TEXT,
-    },
   });
+
+  // **Define Association Inside Model**
+  Movie.associate = (models) => {
+    Movie.hasMany(models.Watchlist, { foreignKey: "movieId", onDelete: "CASCADE" });
+  };
+
+  return Movie;
 };

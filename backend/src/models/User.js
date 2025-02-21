@@ -1,10 +1,7 @@
 const { DataTypes } = require("sequelize");
 
-/**
- * Defines the User model for authentication.
- */
 module.exports = (sequelize) => {
-  return sequelize.define("User", {
+  const User = sequelize.define("User", {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
@@ -15,9 +12,25 @@ module.exports = (sequelize) => {
       allowNull: false,
       unique: true,
     },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate: { isEmail: true },
+    },
     password: {
       type: DataTypes.STRING,
       allowNull: false,
     },
   });
+
+  // **Associations**
+  User.associate = (models) => {
+    User.hasMany(models.Watchlist, {
+      foreignKey: "userId",
+      onDelete: "CASCADE",
+    });
+  };
+
+  return User;
 };

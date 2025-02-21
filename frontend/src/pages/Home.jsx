@@ -1,43 +1,60 @@
-import React, { useState } from "react";
-import { searchMovies } from "../services/api";
+import React, { useEffect, useState } from "react";
+import { fetchTrendingMovies } from "../Services/api";
+import { Container, Row, Col, Card, Button } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
-/**
- * Home page component for searching movies.
- */
 const Home = () => {
-  const [query, setQuery] = useState("");
-  const [movies, setMovies] = useState([]);
+  const [movies, setMovies] = useState([]); // Store trending movies
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    const { data } = await searchMovies(query);
-    setMovies(data);
-  };
+  /** Load trending movies on page load */
+  useEffect(() => {
+    const loadTrendingMovies = async () => {
+      const trendingMovies = await fetchTrendingMovies();
+      setMovies(trendingMovies.slice(0, 4)); // Limit to 4 movies
+    };
+    loadTrendingMovies();
+  }, []);
 
   return (
-    <div>
-      <h1>Movie Search</h1>
-      <form onSubmit={handleSearch}>
-        <input
-          type="text"
-          placeholder="Search for a movie..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button type="submit">Search</button>
-      </form>
+    <Container className="mt-4 text-center">
+      <h2 className="mb-3">🎬 Welcome to Movie Watchlist</h2>
 
-      <div>
-        {movies.map((movie) => (
-          <div key={movie.id}>
-            <h3>{movie.title}</h3>
-            {movie.poster_path && (
-              <img src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`} alt={movie.title} />
-            )}
-          </div>
-        ))}
+      {/* Login / Signup Buttons */}
+      <div className="mb-4">
+        <Link to="/login" className="btn btn-primary me-2">
+          Login
+        </Link>
+        <Link to="/signup" className="btn btn-success">
+          Signup
+        </Link>
       </div>
-    </div>
+
+      {/* Trending Movies */}
+      <Row>
+        {movies.length > 0 ? (
+          movies.map((movie) => (
+            <Col key={movie.id} md={6} lg={3} className="mb-4">
+              <Card>
+                {movie.poster_path ? (
+                  <Card.Img
+                    variant="top"
+                    src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                    style={{ height: "400px", objectFit: "cover" }}
+                  />
+                ) : (
+                  <div className="text-center p-4">No Image</div>
+                )}
+                <Card.Body>
+                  <Card.Title>{movie.title}</Card.Title>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))
+        ) : (
+          <p className="text-muted">No trending movies available.</p>
+        )}
+      </Row>
+    </Container>
   );
 };
 

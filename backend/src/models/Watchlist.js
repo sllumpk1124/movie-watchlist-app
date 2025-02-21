@@ -1,25 +1,31 @@
 const { DataTypes } = require("sequelize");
 
-/**
- * Defines the Watchlist model (many-to-many relationship).
- */
 module.exports = (sequelize) => {
-  return sequelize.define("Watchlist", {
+  const Watchlist = sequelize.define("Watchlist", {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
-      references: {
-        model: 'Users',
-        key: 'id',
-      },
     },
     movieId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'Movies',
-        key: 'id',
-      },
+    },
+    watched: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
   });
+
+  // **Define Association Inside Model**
+  Watchlist.associate = (models) => {
+    Watchlist.belongsTo(models.User, { foreignKey: "userId", onDelete: "CASCADE" });
+    Watchlist.belongsTo(models.Movie, { foreignKey: "movieId", onDelete: "CASCADE" });
+  };
+
+  return Watchlist;
 };

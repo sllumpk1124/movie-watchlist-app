@@ -1,39 +1,29 @@
 const { Sequelize } = require("sequelize");
 require("dotenv").config();
 
-/**
- * Initialize Sequelize with database connection.
- */
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
   logging: false,
 });
 
-/**
- * Import models and pass the Sequelize instance.
- */
-const User = require("./models/User")(sequelize, Sequelize.DataTypes);
-const Movie = require("./models/Movie")(sequelize, Sequelize.DataTypes);
-const Watchlist = require("./models/Watchlist")(sequelize, Sequelize.DataTypes);
+// Import models
+const User = require("./models/User")(sequelize);
+const Movie = require("./models/Movie")(sequelize);
+const Watchlist = require("./models/Watchlist")(sequelize);
 
-/**
- * Define associations (Many-to-Many Relationship)
- */
-User.belongsToMany(Movie, { through: Watchlist, foreignKey: "userId" });
-Movie.belongsToMany(User, { through: Watchlist, foreignKey: "movieId" });
+// Define Associations
+User.hasMany(Watchlist, { foreignKey: "userId", onDelete: "CASCADE" });
+Movie.hasMany(Watchlist, { foreignKey: "movieId", onDelete: "CASCADE" });
+Watchlist.belongsTo(User, { foreignKey: "userId" });
+Watchlist.belongsTo(Movie, { foreignKey: "movieId" });
 
-Watchlist.belongsTo(User, { foreignKey: 'userId' }); 
-Watchlist.belongsTo(Movie, { foreignKey: 'movieId' }); 
-
-/**
- * Connects to the PostgreSQL database and ensures tables are created.
- */
+// Connect to DB function
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
     console.log("✅ Database connected successfully");
 
-    await sequelize.sync({ alter: true });
+    await sequelize.sync({ alter: true }); // Sync models
     console.log("✅ Database models synced successfully");
   } catch (error) {
     console.error("❌ Database connection error:", error);
