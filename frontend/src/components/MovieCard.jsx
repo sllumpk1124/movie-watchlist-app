@@ -14,11 +14,18 @@ const MovieCard = ({ movie }) => {
    */
   const handleMoreInfo = async () => {
     try {
+      console.log(`🔄 Fetching details for movie ID: ${movie.id}...`);
       const details = await fetchMovieDetails(movie.id);
+      
+      if (!details || !details.title) {
+        throw new Error("Movie details not found");
+      }
+  
+      console.log("✅ Movie details:", details);
       setMovieDetails(details);
-      setShow(true);
     } catch (error) {
-      console.error("Failed to fetch movie details:", error);
+      console.error("❌ Error fetching movie details:", error.message);
+      setMovieDetails({ title: "Error", overview: "Movie details not available." });
     }
   };
 

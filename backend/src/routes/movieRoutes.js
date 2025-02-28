@@ -8,9 +8,8 @@
  *
  * Data is fetched from the TMDB API.
  */
-
+const { fetchMovies, fetchMovieDetails, fetchTrendingMovies } = require("../services/tmdbService");
 const express = require("express");
-const tmdbService = require("../services/tmdbService");
 
 const router = express.Router();
 
@@ -20,13 +19,19 @@ const router = express.Router();
  * @access  Public
  */
 router.get("/trending", async (req, res) => {
-    try {
-        const movies = await tmdbService.getTrendingMovies();
-        res.status(200).json(movies);
-    } catch (error) {
-        console.error("Error fetching trending movies:", error);
-        res.status(500).json({ error: "Failed to fetch trending movies" });
+  try {
+    console.log("✅ Fetching trending movies...");
+    const trendingMovies = await fetchTrendingMovies();
+
+    if (!trendingMovies || !Array.isArray(trendingMovies.results)) {
+      return res.status(404).json({ error: "No trending movies found" });
     }
+
+    res.status(200).json(trendingMovies.results);
+  } catch (error) {
+    console.error("❌ Error fetching trending movies:", error.message);
+    res.status(500).json({ error: "Failed to fetch trending movies" });
+  }
 });
 
 /**
@@ -36,18 +41,18 @@ router.get("/trending", async (req, res) => {
  * @query   {string} query - The search term
  */
 router.get("/search", async (req, res) => {
-    try {
-        const { query } = req.query;
-        if (!query) {
-            return res.status(400).json({ error: "Query parameter is required" });
-        }
-
-        const searchResults = await tmdbService.searchMovies(query);
-        res.status(200).json(searchResults);
-    } catch (error) {
-        console.error("Error searching movies:", error);
-        res.status(500).json({ error: "Failed to fetch search results" });
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ error: "Query parameter is required" });
     }
+
+    const searchResults = await fetchMovies(query);
+    res.status(200).json(searchResults);
+  } catch (error) {
+    console.error("Error searching movies:", error);
+    res.status(500).json({ error: "Failed to fetch search results" });
+  }
 });
 
 /**
@@ -57,19 +62,20 @@ router.get("/search", async (req, res) => {
  * @param   {string} id - The ID of the movie
  */
 router.get("/:id", async (req, res) => {
-    try {
-        const { id } = req.params;
-        const movieDetails = await tmdbService.getMovieDetails(id);
+  try {
+    const { id } = req.params;
+    console.log(`✅ Fetching details for movie ID: ${id}`);
 
-        if (!movieDetails) {
-            return res.status(404).json({ error: "Movie not found" });
-        }
-
-        res.status(200).json(movieDetails);
-    } catch (error) {
-        console.error("Error fetching movie details:", error);
-        res.status(500).json({ error: "Failed to fetch movie details" });
+    const movieDetails = await fetchMovieDetails(id);
+    if (!movieDetails) {
+      return res.status(404).json({ error: "Movie not found" });
     }
+
+    res.status(200).json(movieDetails);
+  } catch (error) {
+    console.error("❌ Error fetching movie details:", error);
+    res.status(500).json({ error: "Failed to fetch movie details" });
+  }
 });
 
 module.exports = router;

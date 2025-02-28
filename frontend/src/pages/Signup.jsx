@@ -6,70 +6,39 @@ import { useNavigate } from "react-router-dom";
  * Signup page component
  */
 const Signup = () => {
-  const [credentials, setCredentials] = useState({ username: "", email: "", password: "" });
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(""); 
   const navigate = useNavigate();
 
-  /**
-   * Handles input changes dynamically
-   */
-  const handleChange = (e) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value });
-  };
-
-  /**
-   * Handles form submission for signup
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await signupUser(credentials);
-
-      if (res && res.token) { 
-        localStorage.setItem("token", res.token);
-        console.log("✅ Signup successful, token received:", res.token);
-        navigate("/search"); // Redirect to search page
-      } else {
-        console.error("❌ Unexpected response structure:", res);
-        alert("Signup failed. Unexpected response.");
+      console.log("🔄 Attempting signup...");
+      const userData = await signupUser({ username, email, password });
+  
+      if (!userData) {
+        throw new Error("Signup failed");
       }
+  
+      console.log("✅ Signup successful:", userData);
+      navigate("/login");
     } catch (error) {
-      console.error("❌ Signup error:", error.response?.data || error.message);
-      alert("Signup failed. Try again.");
+      console.error("❌ Signup error:", error.message);
+      setError("Signup failed. Please try again.");
     }
   };
 
   return (
-    <div className="container mt-4">
+    <div>
       <h2>Signup</h2>
+      {error && <p style={{ color: "red" }}>{error}</p>} {/* ✅ Display error message */}
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="username"
-          className="form-control"
-          placeholder="Username"
-          required
-          value={credentials.username}
-          onChange={handleChange}
-        />
-        <input
-          type="email"
-          name="email"
-          className="form-control mt-2"
-          placeholder="Email"
-          required
-          value={credentials.email}
-          onChange={handleChange}
-        />
-        <input
-          type="password"
-          name="password"
-          className="form-control mt-2"
-          placeholder="Password"
-          required
-          value={credentials.password}
-          onChange={handleChange}
-        />
-        <button className="btn btn-primary mt-3" type="submit">Signup</button>
+        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
+        <button type="submit">Signup</button>
       </form>
     </div>
   );

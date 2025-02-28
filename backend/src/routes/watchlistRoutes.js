@@ -10,8 +10,8 @@
  */
 
 const express = require("express");
-const { Watchlist, Movie } = require("../models");
-const authenticate = require("../middleware/authenticate");
+const { Watchlist, Movie } = require("../db");
+const authenticate = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -24,15 +24,13 @@ const router = express.Router();
 router.post("/", authenticate, async (req, res) => {
     try {
         const { movieId } = req.body;
-        const userId = req.user.userId;
+        const userId = req.user.id; // ✅ Correct: Use req.user.id
 
-        // Check if movie is already in watchlist
         const existingEntry = await Watchlist.findOne({ where: { userId, movieId } });
         if (existingEntry) {
             return res.status(400).json({ error: "Movie already in watchlist" });
         }
 
-        // Add movie to watchlist
         const watchlistEntry = await Watchlist.create({ userId, movieId });
         res.status(201).json(watchlistEntry);
     } catch (error) {

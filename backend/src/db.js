@@ -5,10 +5,10 @@ const databaseUrl = process.env.NODE_ENV === "test"
   ? process.env.TEST_DATABASE_URL
   : process.env.DATABASE_URL;
 
-const sequelize = new Sequelize(databaseUrl, {
-  dialect: "postgres",
-  logging: process.env.NODE_ENV !== "test", // Disable logging in test mode
-});
+  const sequelize = new Sequelize(databaseUrl, {
+    dialect: "postgres",
+    logging: (msg) => msg.includes("ERROR") && console.log(msg), // Logs only errors
+  });
 
 // Import models
 const User = require("./models/User")(sequelize);

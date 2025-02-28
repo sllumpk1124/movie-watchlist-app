@@ -1,8 +1,9 @@
 import axios from "axios";
 
 // Set up API instance with base URL
-const API = axios.create({ baseURL: "http://localhost:5000/api" });
-
+const API = axios.create({
+  baseURL: "https://capstone-2-project.onrender.com/api", // ✅ Use deployed backend URL
+});
 /**
  * Automatically attach authorization token to requests
  */
@@ -41,10 +42,16 @@ export const signupUser = async (credentials) => {
 export const loginUser = async (credentials) => {
   try {
     const response = await API.post("/auth/login", credentials);
-    return response.data;
+    const { token, user } = response.data;
+    
+    if (token) {
+      localStorage.setItem("token", token); // Store token for future requests
+    }
+
+    return user; 
   } catch (error) {
-    console.error("Error logging in:", error.response?.data || error.message);
-    throw error;
+    console.error("❌ Login failed:", error.response?.data || error.message);
+    return null;
   }
 };
 
@@ -71,32 +78,43 @@ export const searchMovies = async (query, page = 1) => {
  */
 export const fetchMovieDetails = async (movieId) => {
   try {
-    const response = await API.get(`/movies/${movieId}`);
+    const response = await API.get(`/movies/${movieId}`); // Ensure correct API path
+    if (!response.data) throw new Error("No data received");
     return response.data;
   } catch (error) {
-    console.error("Error fetching movie details:", error.response?.data || error.message);
-    return null;
+    console.error("❌ Error fetching movie details:", error.response?.data || error.message);
+    return {
+      title: "Movie Details",
+      overview: "No description available.",
+      release_date: "Unknown",
+      cast: [],
+    };
   }
 };
-
 /**
  * Add a movie to the user's watchlist
  * @param {Object} movieData - { movieId, title, description, release_date, poster_path }
  * @returns {Promise<Object>} - API response
  */
+
 export const addToWatchlist = async (movie) => {
   try {
-    console.log("🛠 Sending Add to Watchlist Request:", movie); // Debugging
+    const token = localStorage.getItem("token"); 
 
-    const response = await API.post("/watchlist", {
-      movieId: movie.id, // Ensure movieId is included
-      title: movie.title,
-      description: movie.overview, // Use "overview" from TMDB
-      release_date: movie.release_date,
-      poster_path: movie.poster_path,
-    });
+    const response = await API.post(
+      "/watchlist",
+      {
+        movieId: movie.id,
+        title: movie.title,
+        description: movie.overview,
+        release_date: movie.release_date,
+        poster_path: movie.poster_path,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` }, 
+      }
+    );
 
-    console.log("✅ Watchlist Add Response:", response.data);
     return response.data;
   } catch (error) {
     console.error("❌ Error adding to watchlist:", error.response?.data || error.message);
@@ -151,20 +169,16 @@ export const toggleWatchedStatus = async (movieId) => {
 };
 
 /**
- * Fetch trending movies from TMDb via backend
- * @returns {Promise<Object[]>} - Array of trending movies
+ * Fetch trending movies from the backend
+ * @returns {Promise<Object>} - List of trending movies
  */
 export const fetchTrendingMovies = async () => {
   try {
-    const response = await API.get(`/movies/trending`);
-    console.log("✅ Trending Movies API Response:", response.data);
-
-    // Ensure it returns only 4 movies, without breaking other code
-    return response.data.results ? response.data.results.slice(0, 4) : [];
-
+    const response = await API.get("/movies/trending");
+    return response.data; // Ensure response contains the trending movies array
   } catch (error) {
     console.error("❌ Error fetching trending movies:", error.response?.data || error.message);
-    return [];
+    return []; // Return empty array on failure
   }
 };
 

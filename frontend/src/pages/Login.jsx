@@ -6,44 +6,38 @@ import { useNavigate } from "react-router-dom";
  * Login page component
  */
 const Login = () => {
-  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(""); 
   const navigate = useNavigate();
 
-  /**
-   * Handles form submission for login
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await loginUser(credentials);
-      localStorage.setItem("token", res.token);
-      navigate("/search"); // Redirect to Search Page after login
+      console.log("🔄 Attempting login...");
+      const userData = await loginUser({ email, password });
+
+      if (!userData || !userData.token) {
+        throw new Error("Invalid credentials");
+      }
+
+      localStorage.setItem("token", userData.token);
+      console.log("✅ Login successful:", userData);
+      navigate("/");
     } catch (error) {
-      alert("Invalid credentials");
+      console.error("❌ Login failed:", error.message);
+      setError("Invalid credentials. Please try again.");
     }
   };
 
   return (
-    <div className="container mt-4">
+    <div>
       <h2>Login</h2>
+      {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          className="form-control"
-          placeholder="Email"
-          required
-          value={credentials.email}
-          onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-        />
-        <input
-          type="password"
-          className="form-control mt-2"
-          placeholder="Password"
-          required
-          value={credentials.password}
-          onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-        />
-        <button className="btn btn-success mt-3" type="submit">Login</button>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
+        <button type="submit">Login</button>
       </form>
     </div>
   );
