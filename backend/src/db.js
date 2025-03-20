@@ -1,14 +1,25 @@
-const { Sequelize } = require("sequelize");
 require("dotenv").config({ path: process.env.NODE_ENV === "test" ? ".env.test" : ".env" });
+const { Sequelize } = require("sequelize");
 
-const databaseUrl = process.env.NODE_ENV === "test"
-  ? process.env.TEST_DATABASE_URL
-  : process.env.DATABASE_URL;
+// ✅ Select correct database URL dynamically
+const databaseUrl =
+  process.env.NODE_ENV === "test"
+    ? process.env.TEST_DATABASE_URL
+    : process.env.NODE_ENV === "production"
+    ? process.env.DATABASE_URL_PRODUCTION
+    : process.env.DATABASE_URL_LOCAL;
 
-  const sequelize = new Sequelize(databaseUrl, {
-    dialect: "postgres",
-    logging: (msg) => msg.includes("ERROR") && console.log(msg), // Logs only errors
-  });
+// ✅ Check if database URL is missing
+if (!databaseUrl) {
+  throw new Error("❌ DATABASE_URL is not set. Check your .env file.");
+}
+
+// ✅ Connect to PostgreSQL
+const sequelize = new Sequelize(databaseUrl, {
+  dialect: "postgres",
+  logging: process.env.NODE_ENV === "test" ? false : process.env.NODE_ENV !== "production", // Disable logging in tests
+});
+
 
 // Import models
 const User = require("./models/User")(sequelize);
@@ -21,18 +32,24 @@ Movie.hasMany(Watchlist, { foreignKey: "movieId", onDelete: "CASCADE" });
 Watchlist.belongsTo(User, { foreignKey: "userId" });
 Watchlist.belongsTo(Movie, { foreignKey: "movieId" });
 
-// Connect to DB function
-const connectDB = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("✅ Database connected successfully");
+// Connect to DB function with retry logic
+const connectDB = async (retries = 5) => {
+  while (retries) {
+    try {
+      await sequelize.authenticate();
+      console.log("✅ Database connected successfully");
 
-    if (process.env.NODE_ENV !== "test") { // 🔹 Don't reset database in production
-      await sequelize.sync({ alter: true });
-      console.log("✅ Database models synced successfully");
+      if (process.env.NODE_ENV !== "test") {
+        await sequelize.sync({ alter: process.env.NODE_ENV === "development" });
+        console.log("✅ Database models synced successfully");
+      }
+      return;
+    } catch (error) {
+      console.error(`❌ Database connection error. Retries left: ${retries - 1}`);
+      retries -= 1;
+      if (!retries) throw error; // Fail after retries
+      await new Promise(res => setTimeout(res, 5000)); // Wait 5 seconds before retrying
     }
-  } catch (error) {
-    console.error("❌ Database connection error:", error);
   }
 };
 

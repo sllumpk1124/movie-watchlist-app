@@ -17,7 +17,7 @@ const router = express.Router();
 
 /**
  * @route   POST /api/auth/signup
- * @desc    Registers a new user
+ * @desc    Registers a new user and returns a JWT token
  * @access  Public
  * @body    {string} username - The username of the new user
  *          {string} email - The email of the new user
@@ -41,14 +41,13 @@ router.post("/signup", async (req, res) => {
         // Hash the password securely
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create a new user in the database
         const newUser = await User.create({
             username,
-            email,
+            email: email.toLowerCase().trim(), 
             password: hashedPassword,
         });
 
-        // Remove password from the response (for security)
+        // Prepare user response (omit password)
         const userResponse = {
             id: newUser.id,
             username: newUser.username,
@@ -56,11 +55,10 @@ router.post("/signup", async (req, res) => {
         };
 
         // Generate JWT token with user details
-        const token = jwt.sign(userResponse, process.env.JWT_SECRET, {
-            expiresIn: "1h",
-        });
+        const token = jwt.sign(userResponse, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-        console.log("✅ User signed up successfully:", userResponse);
+
+        // Return token and user
         res.status(201).json({ token, user: userResponse });
 
     } catch (error) {
@@ -76,31 +74,39 @@ router.post("/signup", async (req, res) => {
  * @body    {string} email - The user's email
  *          {string} password - The user's password
  */
-
 router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ where: { email } });
 
+        // Find user by email
+        const user = await User.findOne({ where: { email } });
         if (!user) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        // ✅ Correctly compare hashed password
+        // Correctly compare hashed password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        const token = jwt.sign(
-            { id: user.id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: "1h" }
-        );
+        // Prepare safe user response (omit password)
+        const userResponse = {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+        };
 
-        res.json({ token, user });
+        // Generate JWT token with user details
+        const token = jwt.sign(userResponse, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+       ;
+
+        // Return token and user
+        res.json({ token, user: userResponse });
+
     } catch (error) {
-        console.error("❌ Login error:", error);
+        console.error("❌ Login error:", error.message);
         res.status(500).json({ error: "Server error during login" });
     }
 });

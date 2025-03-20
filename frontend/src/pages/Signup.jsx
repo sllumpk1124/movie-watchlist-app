@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { signupUser } from "../Services/api";
+import { signupUser } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -16,14 +16,14 @@ const Signup = () => {
     e.preventDefault();
     try {
       console.log("🔄 Attempting signup...");
-      const userData = await signupUser({ username, email, password });
-  
+      const userData = await signupUser({ username, email, password }); // ✅ Token is stored inside signupUser
+      
       if (!userData) {
         throw new Error("Signup failed");
       }
-  
+
       console.log("✅ Signup successful:", userData);
-      navigate("/login");
+      navigate("/search"); // ✅ Redirect to search page after signup
     } catch (error) {
       console.error("❌ Signup error:", error.message);
       setError("Signup failed. Please try again.");
@@ -31,14 +31,41 @@ const Signup = () => {
   };
 
   return (
-    <div>
-      <h2>Signup</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>} {/* ✅ Display error message */}
+    <div className="container mt-5" style={{ maxWidth: "400px" }}>
+      <h2 className="text-center mb-4">Sign Up</h2>
+      {error && <div className="alert alert-danger">{error}</div>} {/* ✅ Error display */}
       <form onSubmit={handleSubmit}>
-        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
-        <button type="submit">Signup</button>
+        <div className="mb-3">
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+            required
+            className="form-control"
+          />
+        </div>
+        <div className="mb-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            required
+            className="form-control"
+          />
+        </div>
+        <div className="mb-3">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            required
+            className="form-control"
+          />
+        </div>
+        <button type="submit" className="btn btn-primary w-100">Sign Up</button>
       </form>
     </div>
   );

@@ -1,10 +1,15 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  base: "./",  
+  base: "/",  // ✅ Ensures Vite correctly serves static files
   plugins: [react()],
+  server: {
+    port: 5173,
+    strictPort: true,
+    open: true,
+  },
   define: {
-    'import.meta.env': JSON.stringify(process.env),  
+    "process.env": process.env,  // ✅ Keeps environment variables available
   },
 });

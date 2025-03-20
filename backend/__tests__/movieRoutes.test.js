@@ -1,36 +1,45 @@
-/**
- * Tests for movie-related routes, including fetching trending movies and searching.
- */
-
 const request = require("supertest");
 const app = require("../src/server");
+const { sequelize } = require("../src/db");
 
-describe("Movie Routes", () => {
-  test("Should return trending movies", async () => {
+describe("🎬 Movie Routes", () => {
+  beforeAll(async () => {
+    await sequelize.sync({ force: true });
+  });
+
+  test("✅ Should fetch trending movies", async () => {
     const res = await request(app).get("/api/movies/trending");
-
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.results)).toBe(true); // Verify results format
+    expect(res.body).toHaveProperty("results");
+    expect(Array.isArray(res.body.results)).toBe(true);
   });
 
-  test("Should return 400 when searching without a query", async () => {
+  test("✅ Should search movies by query", async () => {
+    const res = await request(app).get("/api/movies/search?query=Batman");
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("results");
+    expect(Array.isArray(res.body.results)).toBe(true);
+  });
+
+  test("🚫 Should return 400 for missing search query", async () => {
     const res = await request(app).get("/api/movies/search");
-
-    expect(res.status).toBe(400); // Expect bad request error
-    expect(res.body).toHaveProperty("error");
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty("error", "Query parameter is required");
   });
 
-  test("Should return a list of movies for a valid search query", async () => {
-    const res = await request(app).get("/api/movies/search").query({ query: "Batman" });
-
+  test("✅ Should fetch details for a valid movie ID", async () => {
+    const res = await request(app).get("/api/movies/550"); // Example movie ID
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.results)).toBe(true); // Verify results format
+    expect(res.body).toHaveProperty("title");
   });
 
-  test("Should return 404 for a non-existent movie ID", async () => {
+  test("🚫 Should return 404 for invalid movie ID", async () => {
     const res = await request(app).get("/api/movies/99999999");
+    expect(res.status).toBe(404);
+    expect(res.body).toHaveProperty("error", "Movie not found");
+  });
 
-    expect(res.status).toBe(404); // Expect not found error
-    expect(res.body).toHaveProperty("error");
+  afterAll(async () => {
+    await sequelize.close();
   });
 });

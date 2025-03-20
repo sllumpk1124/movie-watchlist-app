@@ -1,51 +1,81 @@
-import React from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
-import WelcomePage from "./pages/WelcomePage";
+import { useEffect, useState } from "react";
+import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Navbar from "./components/Navbar";
 import SearchPage from "./pages/SearchPage";
 import WatchlistPage from "./pages/WatchlistPage";
-import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-/**
- * Function to check if the user is logged in
- */
-const isAuthenticated = () => {
-  return localStorage.getItem("token") !== null;
-};
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState(null);
+  const navigate = useNavigate();
 
-/**
- * Protected Route Component
- * Redirects to login if user is not authenticated
- */
-const ProtectedRoute = ({ element }) => {
-  return isAuthenticated() ? element : <Navigate to="/" />;
-};
+  // ✅ Check authentication status on app load
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUsername = localStorage.getItem("username");
 
-/**
- * App Component - Defines all routes
- */
-const App = () => {
+    setIsAuthenticated(!!token);
+    if (token && storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
+
+  // ✅ Automatically log out users when the token expires
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      const expirationTime = localStorage.getItem("tokenExpiration");
+      if (expirationTime && new Date().getTime() > expirationTime) {
+        console.log("🔴 Token expired, logging out...");
+        localStorage.removeItem("token");
+        localStorage.removeItem("tokenExpiration");
+        localStorage.removeItem("username");
+        setIsAuthenticated(false);
+        setUsername(null);
+        navigate("/login");
+      }
+    };
+
+    checkTokenExpiration();
+    const interval = setInterval(checkTokenExpiration, 60 * 1000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [navigate]);
+
   return (
-    <Router>
-      <Navbar />
+    <>
+      {/* ✅ Pass authentication status & username to Navbar */}
+      <Navbar isAuthenticated={isAuthenticated} username={username} />
       <Routes>
-        {/* Default Route - Redirect to Welcome Page */}
-        <Route path="/" element={<WelcomePage />} />
+        {/* ✅ Redirect "/" to search for logged-in users, otherwise show welcome message */}
+        <Route path="/" element={<Navigate to={isAuthenticated ? "/search" : "/"} replace />} />
 
-        {/* Authentication Routes */}
-        <Route path="/login" element={isAuthenticated() ? <Navigate to="/search" /> : <Login />} />
-        <Route path="/signup" element={isAuthenticated() ? <Navigate to="/search" /> : <Signup />} />
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
-        {/* Protected Routes - Only accessible when logged in */}
-        <Route path="/search" element={<ProtectedRoute element={<SearchPage />} />} />
-        <Route path="/watchlist" element={<ProtectedRoute element={<WatchlistPage />} />} />
-
-        {/* Catch-All Route - Redirect to Welcome Page if path is unknown */}
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* Protected Routes */}
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute>
+              <SearchPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/watchlist"
+          element={
+            <ProtectedRoute>
+              <WatchlistPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
-    </Router>
+    </>
   );
-};
+}
 
 export default App;

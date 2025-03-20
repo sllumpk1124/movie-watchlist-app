@@ -1,41 +1,72 @@
 import React, { useEffect, useState } from "react";
-import { fetchTrendingMovies } from "../Services/api";
-import { Link } from "react-router-dom";
-import { Container, Row, Col, Card, Button } from "react-bootstrap";
+import { fetchTrendingMovies, searchMovies } from "../services/api";
+import { Container, Row, Col, Card, Spinner, Alert } from "react-bootstrap";
+import SearchBar from "../components/SearchBar";
 
 const WelcomePage = () => {
   const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadTrendingMovies = async () => {
-      const trendingMovies = await fetchTrendingMovies();
-      setMovies(trendingMovies);
+    const getTrendingMovies = async () => {
+      const data = await fetchTrendingMovies();
+      console.log("Trending Movies:", data);
+      setMovies(data || []);
+      setLoading(false);
     };
-    loadTrendingMovies();
+
+    getTrendingMovies();
   }, []);
 
+  const handleSearch = async (query) => {
+    setLoading(true);
+    const results = await searchMovies(query);
+    setMovies(results);
+    setLoading(false);
+  };
+
   return (
-    <Container className="mt-4">
-      <h2 className="text-center">🎬 Welcome to Movie Watchlist</h2>
-      <p className="text-center">Sign up or log in to create your watchlist!</p>
-      <Row>
-        {movies.slice(0, 5).map((movie) => (
-          <Col key={movie.id} md={4} lg={3} className="mb-4">
-            <Card>
+    <Container className="py-4">
+      <h1 className="text-center mb-4">Trending Movies</h1>
+
+      {/* Search Bar */}
+      <SearchBar onSearch={handleSearch} />
+
+      {/* Loader */}
+      {loading && (
+        <div className="d-flex justify-content-center my-5">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </Spinner>
+        </div>
+      )}
+
+      {/* No Movies */}
+      {!loading && movies.length === 0 && (
+        <Alert variant="info" className="text-center">
+          No movies found.
+        </Alert>
+      )}
+
+      {/* Movies */}
+      <Row xs={1} sm={2} md={3} lg={4} className="g-4">
+        {movies.map((movie) => (
+          <Col key={movie.id}>
+            <Card className="h-100 shadow-sm bg-dark text-white">
               {movie.poster_path ? (
                 <Card.Img
                   variant="top"
-                  src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                  alt={movie.title}
                   style={{ height: "400px", objectFit: "cover" }}
                 />
               ) : (
-                <div className="text-center p-4">No Image</div>
+                <div className="d-flex align-items-center justify-content-center bg-secondary" style={{ height: "400px" }}>
+                  <span>No Image</span>
+                </div>
               )}
               <Card.Body>
-                <Card.Title>{movie.title}</Card.Title>
-                <Button variant="info" as={Link} to="/login">
-                  Login to Add to Watchlist
-                </Button>
+                <Card.Title className="text-center">{movie.title}</Card.Title>
               </Card.Body>
             </Card>
           </Col>

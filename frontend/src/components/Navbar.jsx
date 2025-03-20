@@ -1,51 +1,60 @@
-import React from "react";
+import { Navbar, Container, Nav, Button } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import { Navbar, Nav, Button, Container } from "react-bootstrap";
 
-/**
- * Navigation bar component
- */
-const Navigation = () => {
+const MyNavbar = ({ isAuthenticated, username }) => {
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
-  /**
-   * Handles user logout by clearing localStorage and redirecting to welcome page
-   */
+  // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/");
+    localStorage.removeItem("tokenExpiration");
+    localStorage.removeItem("username");
+    navigate("/login");
   };
 
   return (
-    <Navbar bg="dark" variant="dark" expand="lg">
-      <Container className="d-flex flex-column align-items-center">
-        {/* Centered Navbar Title */}
-        <Navbar.Brand as={Link} to="/" className="mx-auto">
-          🎬 Movie Watchlist 🎬
-        </Navbar.Brand>
+    <>
+      <Navbar bg="dark" variant="dark">
+        <Container>
+          {/* Navbar Brand */}
+          <Navbar.Brand as={Link} to="/">Movie Watchlist</Navbar.Brand>
 
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        <Navbar.Collapse id="basic-navbar-nav">
-          {/* Center Navigation Links */}
-          <Nav className="mx-auto">
-            {token ? (
-              <>
-                <Nav.Link as={Link} to="/search">Search Movies</Nav.Link>
-                <Nav.Link as={Link} to="/watchlist">Watchlist</Nav.Link>
-                <Button variant="outline-danger" onClick={handleLogout}>Logout</Button>
-              </>
+          {/* Navigation Links (Always Visible) */}
+          <Nav className="me-auto">
+            {isAuthenticated && <Nav.Link as={Link} to="/search">Search</Nav.Link>}
+            {isAuthenticated && <Nav.Link as={Link} to="/watchlist">Watchlist</Nav.Link>}
+          </Nav>
+
+          {/* User Greeting & Authentication Links */}
+          <Nav className="align-items-center">
+            {isAuthenticated && username && (
+              <Navbar.Text className="me-3 text-light">
+                Hello, <strong>{username}</strong>
+              </Navbar.Text>
+            )}
+            {isAuthenticated ? (
+              <Button variant="outline-light" onClick={handleLogout}>Logout</Button>
             ) : (
               <>
-                <Nav.Link as={Link} to="/login" className="mx-2">Login</Nav.Link>
-                <Nav.Link as={Link} to="/signup" className="mx-2">Signup</Nav.Link>
+                <Nav.Link as={Link} to="/login">Login</Nav.Link>
+                <Nav.Link as={Link} to="/signup">Signup</Nav.Link>
               </>
             )}
           </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+        </Container>
+      </Navbar>
+
+      {/* ✅ Show welcome message only for non-logged-in users */}
+      {!isAuthenticated && (
+        <Container className="text-center mt-4">
+          <h4 className="text-light">🎬 Welcome to Movie Watchlist!</h4>
+          <p className="text-muted">
+            Please <Link to="/login">log in</Link> or <Link to="/signup">sign up</Link> to get started.
+          </p>
+        </Container>
+      )}
+    </>
   );
 };
 
-export default Navigation;
+export default MyNavbar;

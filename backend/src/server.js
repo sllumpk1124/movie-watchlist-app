@@ -16,22 +16,33 @@ const watchlistRoutes = require("./routes/watchlistRoutes");
 
 const app = express();
 
-// Middleware setup
+//  Middleware setup
 app.use(cors()); // Enables Cross-Origin Resource Sharing
 app.use(express.json()); // Parses incoming JSON requests
 
-// Define API routes
-app.use("/api/auth", authRoutes);
-app.use("/api/movies", movieRoutes);
-app.use("/api/watchlist", watchlistRoutes);
+// Health check route
+app.get("/api/health", (req, res) => {
+  res.json({ status: "✅ Backend is running!" });
+});
 
-// Export `app` first for testing purposes
-module.exports = app;
+// Connect to Database before setting up routes
+connectDB().then(() => {
+  // Define API routes
+  app.use("/api/auth", authRoutes);
+  app.use("/api/movies", movieRoutes);
+  app.use("/api/watchlist", watchlistRoutes);
 
-// Start the server only in non-test environments
-if (process.env.NODE_ENV !== "test") {
-  const PORT = process.env.PORT || 5000;
-  connectDB().then(() => {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  // Handle invalid API routes
+  app.use("*", (req, res) => {
+    res.status(404).json({ error: "❌ Route not found" });
   });
-}
+
+  // Start the server unless in a test environment
+  const PORT = process.env.PORT || 5000;
+  if (process.env.NODE_ENV !== "test") {
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  }
+});
+
+// Export `app` for testing purposes
+module.exports = app;
