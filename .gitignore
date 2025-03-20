@@ -3,3 +3,5 @@ node_modules/
 .DS_Store
 .qodo
 .env.test
+frontend/.env
+frontend/.env.test
