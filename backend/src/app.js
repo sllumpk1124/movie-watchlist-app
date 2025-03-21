@@ -20,7 +20,11 @@ const watchlistRoutes = require("./routes/watchlistRoutes");
 const app = express();
 
 // Middleware
-app.use(cors()); // Allows cross-origin requests
+app.use(cors({
+  origin: process.env.FRONTEND_URL, // From .env (e.g. https://your-frontend.onrender.com)
+  credentials: true, 
+}));
+app.options("*", cors());
 app.use(express.json()); // Parses incoming JSON requests
 
 // Define API routes
