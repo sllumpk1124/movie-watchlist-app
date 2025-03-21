@@ -14,10 +14,15 @@ if (!databaseUrl) {
   throw new Error("❌ DATABASE_URL is not set. Check your .env file.");
 }
 
-// ✅ Connect to PostgreSQL
 const sequelize = new Sequelize(databaseUrl, {
   dialect: "postgres",
-  logging: process.env.NODE_ENV === "test" ? false : process.env.NODE_ENV !== "production", // Disable logging in tests
+  logging: process.env.NODE_ENV !== "production",
+  dialectOptions: process.env.NODE_ENV === "production" ? {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+  } : {},
 });
 
 
