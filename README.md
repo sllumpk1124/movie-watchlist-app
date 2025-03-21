@@ -4,8 +4,7 @@
 The Movie Watchlist App is a full-stack web application that allows users to search for movies, add them to their personal watchlist, and manage their saved movies. It integrates with **The Movie Database (TMDB) API** to fetch movie details and provides user authentication for secure access.
 
 ## **Live Demo**
-- **Frontend:** [Movie Watchlist Frontend](https://capstone-2-project-2.onrender.com)
-- **Backend:** [Movie Watchlist API](https://capstone-2-project.onrender.com)
+Movie Watchlist App:  https://movie-watchlist-app-frontend.onrender.com
 
 
 ---
