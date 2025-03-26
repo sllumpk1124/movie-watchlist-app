@@ -15,6 +15,7 @@ const db = require("../db");
 const User = db.User;
 const router = express.Router();
 
+
 /**
  * @route   POST /api/auth/signup
  * @desc    Registers a new user and returns a JWT token
@@ -32,11 +33,16 @@ router.post("/signup", async (req, res) => {
             return res.status(400).json({ error: "All fields are required." });
         }
 
-        // Check if user already exists
+        // Check if email and username already exists
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
             return res.status(400).json({ error: "Email already in use." });
         }
+
+        const existingUsername = await User.findOne({ where: { username } });
+        if (existingUsername) {
+          return res.status(400).json({ error: "Username already taken" });
+}
 
         // Hash the password securely
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -46,17 +52,15 @@ router.post("/signup", async (req, res) => {
             email: email.toLowerCase().trim(), 
             password: hashedPassword,
         });
+        
+        // Only sign the user's ID into the token 
+        const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-        // Prepare user response (omit password)
+        // Return non-sensitive user data in the response
         const userResponse = {
-            id: newUser.id,
-            username: newUser.username,
-            email: newUser.email,
+          id: newUser.id,
+          username: newUser.username,
         };
-
-        // Generate JWT token with user details
-        const token = jwt.sign(userResponse, process.env.JWT_SECRET, { expiresIn: "1h" });
-
 
         // Return token and user
         res.status(201).json({ token, user: userResponse });

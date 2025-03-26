@@ -7,7 +7,11 @@
  * - Closes the database connection after all tests.
  */
 
-require("dotenv").config({ path: ".env.test" });
+if (process.env.NODE_ENV === "test") {
+  require("dotenv").config({ path: ".env.test" });
+} else {
+  require("dotenv").config();
+}
 
 console.log("🛠 Loading environment variables...");
 console.log("🛠 DATABASE_URL:", process.env.DATABASE_URL);

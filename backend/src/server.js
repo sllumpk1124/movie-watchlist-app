@@ -15,6 +15,7 @@ const movieRoutes = require("./routes/movieRoutes");
 const watchlistRoutes = require("./routes/watchlistRoutes");
 
 const app = express();
+let server;
 
 //  Middleware setup
 app.use(cors()); // Enables Cross-Origin Resource Sharing
@@ -45,4 +46,4 @@ connectDB().then(() => {
 });
 
 // Export `app` for testing purposes
-module.exports = app;
+module.exports = { app, server };

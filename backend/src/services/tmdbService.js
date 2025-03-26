@@ -12,11 +12,14 @@ if (!TMDB_API_KEY) {
 
 /**
  * Fetch movies from TMDb based on a search query.
+ * Retries on rate-limiting (HTTP 429).
+ *
  * @param {string} query - The movie search term.
  * @param {number} page - The page number for pagination.
+ * @param {number} retries - Number of retry attempts for rate-limiting.
  * @returns {Promise<Object|null>} - The movie data from TMDb or null on error.
  */
-const fetchMovies = async (query, page = 1) => {
+const fetchMovies = async (query, page = 1, retries = 3) => {
   try {
     const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
       params: {
@@ -29,6 +32,17 @@ const fetchMovies = async (query, page = 1) => {
 
     return response.data;
   } catch (error) {
+    const status = error.response?.status;
+    const retryAfter = error.response?.headers["retry-after"];
+
+    // Handle TMDB rate limit (HTTP 429)
+    if (status === 429 && retries > 0) {
+      const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 2000; // Fallback to 2s
+      console.warn(` Rate limited. Retrying in ${waitTime / 1000}s... (${retries} retries left)`);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      return fetchMovies(query, page, retries - 1);
+    }
+
     console.error("❌ Error fetching movies:", error.response?.data || error.message);
     return null;
   }
@@ -76,7 +90,10 @@ const fetchMovieDetails = async (movieId) => {
       },
     });
 
-    console.log("✅ Raw Movie Details Response:", response.data); // Debugging log
+    // ✅ Only log detailed response data in development
+    if (process.env.NODE_ENV !== "production") {
+      console.log("📦 Raw Movie Details Response:", response.data);
+    }
 
     if (!response.data || !response.data.title) {
       throw new Error("Invalid movie details response.");
@@ -92,12 +109,12 @@ const fetchMovieDetails = async (movieId) => {
     };
   } catch (error) {
     console.error("❌ Error fetching movie details:", error.response?.data || error.message);
-    return {
-      title: "Movie Details",
-      overview: "No description available.",
-      release_date: "Unknown",
-      cast: "No cast available.",
-    };
+
+    if (error.response?.status === 404 || error.response?.data?.status_code === 34) {
+      return { success: false, status_code: 34 };
+    }
+
+    return null;
   }
 };
 

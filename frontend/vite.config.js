@@ -1,8 +1,9 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  base: "/",  // ✅ Ensures Vite correctly serves static files
+  base: "/",  
   plugins: [react()],
   server: {
     port: 5173,
@@ -10,6 +11,11 @@ export default defineConfig({
     open: true,
   },
   define: {
-    "process.env": process.env,  // ✅ Keeps environment variables available
+    "process.env": process.env,  
   },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./__tests__/setup.js",
+  }
 });

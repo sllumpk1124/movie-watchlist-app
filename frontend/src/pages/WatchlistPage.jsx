@@ -11,7 +11,7 @@ const WatchlistPage = () => {
 
   return (
     <Container>
-      <h2 className="text-center mt-4">🎬 Your Watchlist</h2>
+      <h2 className="text-center mt-4">🎬 My Watchlist 🎬 </h2>
       <Row>
         {watchlist.length === 0 ? (
           <p className="text-center">No movies in watchlist.</p>

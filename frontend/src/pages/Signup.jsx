@@ -2,38 +2,61 @@ import React, { useState } from "react";
 import { signupUser } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
+
+const isValidEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 /**
  * Signup page component
  */
-const Signup = () => {
+const Signup = ({ onSignupSuccess }) => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(""); 
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      console.log("🔄 Attempting signup...");
-      const userData = await signupUser({ username, email, password }); // ✅ Token is stored inside signupUser
-      
-      if (!userData) {
-        throw new Error("Signup failed");
-      }
+    setError("");
 
-      console.log("✅ Signup successful:", userData);
-      navigate("/search"); // ✅ Redirect to search page after signup
-    } catch (error) {
-      console.error("❌ Signup error:", error.message);
-      setError("Signup failed. Please try again.");
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+  
+    // Password must be at least 8 characters
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+  
+    // Password must include at least one letter and one number
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError("Password must include at least one letter and one number.");
+      return;
+    }
+  
+    setLoading(true);
+  
+    try {
+      const userData = await signupUser({ username, email, password });
+      if (!userData) throw new Error("Signup failed");
+      onSignupSuccess?.(userData); // ✅ Call parent update if provided
+      navigate("/search");
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || "Signup failed. Please try again.";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="container mt-5" style={{ maxWidth: "400px" }}>
       <h2 className="text-center mb-4">Sign Up</h2>
-      {error && <div className="alert alert-danger">{error}</div>} {/* ✅ Error display */}
+      {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <input
@@ -65,7 +88,9 @@ const Signup = () => {
             className="form-control"
           />
         </div>
-        <button type="submit" className="btn btn-primary w-100">Sign Up</button>
+        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+          {loading ? "Signing up..." : "Sign Up"}
+        </button>
       </form>
     </div>
   );

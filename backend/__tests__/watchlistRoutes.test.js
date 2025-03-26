@@ -1,59 +1,69 @@
 const request = require("supertest");
-const app = require("../src/server");
-const { sequelize, User, Movie, Watchlist } = require("../src/db");
 const bcrypt = require("bcryptjs");
+const app = require("../src/db");
+const { sequelize } = require("../src/db");
+const { User, Movie, Watchlist } = require("../src/models");
 
-let authToken;
 let testUser;
-const testMovie = {
-  id: 12345,
-  title: "Inception",
-  poster_path: "/inception.jpg",
-  release_date: "2010-07-16",
-};
+let authToken;
+
+beforeAll(async () => {
+  await sequelize.sync({ force: true });
+});
+
+beforeEach(async () => {
+  await sequelize.sync({ force: true });
+
+  testUser = await User.create({
+    username: "watchlistUser",
+    email: "watchlist@example.com",
+    password: await bcrypt.hash("password123", 10),
+  });
+
+  const loginRes = await request(app).post("/api/auth/login").send({
+    email: "watchlist@example.com",
+    password: "password123",
+  });
+
+  authToken = loginRes.body.token;
+
+  await Movie.create({
+    id: 12345,
+    title: "Inception",
+    poster_path: "/inception.jpg",
+    release_date: "2010-07-16",
+  });
+
+  await Watchlist.create({
+    userId: testUser.id,
+    movieId: 12345,
+    watched: false,
+  });
+});
+
+afterAll(async () => {
+  await sequelize.close();
+});
 
 describe("📌 Watchlist Routes", () => {
-  beforeAll(async () => {
-    await sequelize.sync({ force: true });
+  test("✅ Should add a new movie to the watchlist", async () => {
+    const newMovie = {
+      id: 67890,
+      title: "Interstellar",
+      poster_path: "/interstellar.jpg",
+      release_date: "2014-11-07",
+    };
 
-    // Create test user
-    testUser = await User.create({
-      username: "watchlistUser",
-      email: "watchlist@example.com",
-      password: await bcrypt.hash("password123", 10),
-    });
+    await Movie.create(newMovie);
 
-    // Login and get token
-    const loginRes = await request(app)
-      .post("/api/auth/login")
-      .send({
-        email: "watchlist@example.com",
-        password: "password123",
-      });
-
-    authToken = loginRes.body.token;
-  });
-
-  // ✅ This ensures that each test starts with a fresh DB
-  beforeEach(async () => {
-    await sequelize.sync({ force: true });
-
-    // Create movie first
-    await Movie.create(testMovie);
-
-    // Then add movie to watchlist
-    await Watchlist.create({ userId: testUser.id, movieId: testMovie.id });
-  });
-
-  test("✅ Should add a movie to the watchlist", async () => {
     const res = await request(app)
       .post("/api/watchlist")
       .set("Authorization", `Bearer ${authToken}`)
-      .send(testMovie);
+      .send(newMovie);
 
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty("userId", testUser.id);
-    expect(res.body).toHaveProperty("movieId", testMovie.id);
+    expect(res.body).toHaveProperty("movieId", newMovie.id);
   });
 
   test("✅ Should fetch user’s watchlist", async () => {
@@ -68,15 +78,10 @@ describe("📌 Watchlist Routes", () => {
 
   test("✅ Should remove a movie from watchlist", async () => {
     const res = await request(app)
-      .delete(`/api/watchlist/${testMovie.id}`)
+      .delete("/api/watchlist/12345")
       .set("Authorization", `Bearer ${authToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("message", "Movie removed from watchlist.");
-  });
-
-  afterAll(async () => {
-    await sequelize.close();
-    app.close(); // Ensure Express server is properly closed
+    expect(res.body).toHaveProperty("message", "Movie removed from watchlist");
   });
 });

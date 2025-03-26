@@ -5,6 +5,7 @@ import Signup from "./pages/Signup";
 import Navbar from "./components/Navbar";
 import SearchPage from "./pages/SearchPage";
 import WatchlistPage from "./pages/WatchlistPage";
+import WelcomePage from "./pages/WelcomePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -12,7 +13,6 @@ function App() {
   const [username, setUsername] = useState(null);
   const navigate = useNavigate();
 
-  // ✅ Check authentication status on app load
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUsername = localStorage.getItem("username");
@@ -23,40 +23,59 @@ function App() {
     }
   }, []);
 
-  // ✅ Automatically log out users when the token expires
   useEffect(() => {
     const checkTokenExpiration = () => {
       const expirationTime = localStorage.getItem("tokenExpiration");
       if (expirationTime && new Date().getTime() > expirationTime) {
         console.log("🔴 Token expired, logging out...");
-        localStorage.removeItem("token");
-        localStorage.removeItem("tokenExpiration");
-        localStorage.removeItem("username");
+        localStorage.clear();
         setIsAuthenticated(false);
         setUsername(null);
         navigate("/login");
       }
     };
-
-    checkTokenExpiration();
-    const interval = setInterval(checkTokenExpiration, 60 * 1000); // Check every minute
-
+    const interval = setInterval(checkTokenExpiration, 60 * 1000);
     return () => clearInterval(interval);
   }, [navigate]);
 
   return (
     <>
-      {/* ✅ Pass authentication status & username to Navbar */}
-      <Navbar isAuthenticated={isAuthenticated} username={username} />
+      <Navbar
+  isAuthenticated={isAuthenticated}
+  username={username}
+  setIsAuthenticated={setIsAuthenticated}
+  setUsername={setUsername}
+/>
       <Routes>
-        {/* ✅ Redirect "/" to search for logged-in users, otherwise show welcome message */}
-        <Route path="/" element={<Navigate to={isAuthenticated ? "/search" : "/"} replace />} />
-
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-
-        {/* Protected Routes */}
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? <Navigate to="/search" replace /> : <WelcomePage />
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <Login
+              onLoginSuccess={(user) => {
+                setIsAuthenticated(true);
+                setUsername(user.username);
+                navigate("/search");
+              }}
+            />
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <Signup
+              onSignupSuccess={(user) => {
+                setIsAuthenticated(true);
+                setUsername(user.username);
+              }}
+            />
+          }
+        />
         <Route
           path="/search"
           element={
